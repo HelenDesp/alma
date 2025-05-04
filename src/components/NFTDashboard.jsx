@@ -3,7 +3,8 @@ import { useAccount } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 const CONTRACT_ADDRESS = "0x28D744dAb5804eF913dF1BF361E06Ef87eE7FA47";
-const ALCHEMY_API_KEY = "https://base-mainnet.g.alchemy.com/v2/-h4g9_mFsBgnf1Wqb3aC7Qj06rOkzW-m";
+const ALCHEMY_API_KEY =
+  "https://base-mainnet.g.alchemy.com/v2/-h4g9_mFsBgnf1Wqb3aC7Qj06rOkzW-m";
 
 export default function NFTDashboard() {
   const { address, isConnected } = useAccount();
@@ -14,27 +15,33 @@ export default function NFTDashboard() {
     setLoading(true);
     try {
       const url = `${ALCHEMY_API_KEY}/getNFTsForOwner?owner=${address}&contractAddresses[]=${CONTRACT_ADDRESS}&withMetadata=true`;
-      console.log("Fetching NFTs from:", url);
       const res = await fetch(url);
       const data = await res.json();
-      console.log("Alchemy Response:", data);
-      const nftList = data.ownedNfts
-        .filter(nft => nft.metadata && nft.metadata.image)
+
+      const nftList = (data?.ownedNfts || [])
+        .filter(
+          (nft) =>
+            nft.metadata &&
+            typeof nft.metadata.image === "string" &&
+            nft.metadata.image.length
+        )
         .map((nft) => {
-          const metadata = nft.metadata;
-          const rawImage = metadata.image || "";
-          const image = rawImage.startsWith("ipfs://")
-            ? rawImage.replace("ipfs://", "https://ipfs.io/ipfs/")
-            : rawImage;
+          const { image, name, description } = nft.metadata;
+          const safeImage = image.startsWith("ipfs://")
+            ? image.replace("ipfs://", "https://ipfs.io/ipfs/")
+            : image;
+
           return {
             tokenId: nft.tokenId.startsWith("0x")
               ? parseInt(nft.tokenId, 16).toString()
               : nft.tokenId,
-            name: metadata.name,
-            description: metadata.description,
-            image,
+            name,
+            description,
+            image: safeImage,
           };
         });
+
+      console.log("Filtered NFT count:", nftList.length);
       setNfts(nftList);
     } catch (err) {
       console.error("Failed to fetch NFTs", err);
@@ -60,8 +67,14 @@ export default function NFTDashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
               {nfts.map((nft) => (
                 <div key={nft.tokenId} className="border rounded p-4 shadow">
-                  <img src={nft.image} alt={`NFT ${nft.tokenId}`} className="mb-2 w-full" />
-                  <h2 className="text-lg font-semibold">#{nft.tokenId} — {nft.name}</h2>
+                  <img
+                    src={nft.image}
+                    alt={`NFT ${nft.tokenId}`}
+                    className="mb-2 w-full"
+                  />
+                  <h2 className="text-lg font-semibold">
+                    #{nft.tokenId} — {nft.name}
+                  </h2>
                   <p className="text-sm text-gray-600">{nft.description}</p>
                 </div>
               ))}
