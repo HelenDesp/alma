@@ -22,9 +22,10 @@ export default function NFTDashboard() {
         .filter(nft => nft.metadata && nft.metadata.image)
         .map((nft) => {
           const metadata = nft.metadata;
-          const image = metadata.image.startsWith("ipfs://")
-            ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/")
-            : metadata.image;
+          const rawImage = metadata.image || "";
+          const image = rawImage.startsWith("ipfs://")
+            ? rawImage.replace("ipfs://", "https://ipfs.io/ipfs/")
+            : rawImage;
           return {
             tokenId: nft.tokenId.startsWith("0x")
               ? parseInt(nft.tokenId, 16).toString()
